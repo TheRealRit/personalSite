@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<title>Rit</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="STATIC/styles.css">
+<style>
+</style>
+<head>
+
+</head>
+<body>
+    <div>
+        <!--Add header with following dives:
+            Website name,
+            Navbar
+        -->
+        <canvas id="myCanvas" width="800" height="600"></canvas>
+        <div class="header">
+            <div class="content">
+                <!--Main content segment with width control-->
+                <div class="subContent">
+                    <div class="subHeader">
+                        <!-- Name of website -->
+                        <div id="websiteName">
+                            <h1>
+                                Rit
+                            </h1>
+                        </div>
+                        <!-- Navbar -->
+                        <div class="navbar">
+                            <a href="index.html">Home</a>
+                            <a href="projects.html">Projects</a>
+                            <a href="resume.html">Resume</a>
+                            <a href="aboutme.html">About Me</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Class for background of subcontent-->
+        <div class="content">
+            <!--Main content segment with width control-->
+            <div class="subContent">
+                <div class="pageTitle">
+                    <h1>Welcome</h1>
+                </div>
+            </div>
+        </div>
+        <!--Simple background for footer-->
+        <div class="footer">
+            <!--Main content segment with width control-->
+            <div class="subContent">
+
+            </div>
+        </div>
+
+    </div>
+    
+
+
+</body>
+<script>
+    // Detect scroll event and change header background
+    window.addEventListener('scroll', function() {
+        const header = document.querySelector('.header');
+        
+        if (window.scrollY > 0) {
+            // Add 'scrolled' class when the page is scrolled
+            header.classList.add('scrolled');
+        } else {
+            // Remove 'scrolled' class when the page is at the top
+            header.classList.remove('scrolled');
+        }
+    });
+</script>
+<script src="STATIC/stars.js"></script>
+</html>
