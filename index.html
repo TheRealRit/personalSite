@@ -180,45 +180,40 @@
           edges = edges.concat(result2.edges);
           //console.log('result2 edges:', result2.edges , 'for sub2:', sub2);
         } else if(splitnum == 3){
-          // Three splits: two polygons and the segment between v2 and v3
           const sub1 = [], sub2 = [], sub3 = [];
-          // Build sub1 from v1 up to the first of v2/v3
           let i = idx1;
-          do {
-            sub1.push(poly[i]);
-            i = (i + 1) % poly.length;
-          } while (poly[i] !== v2 && poly[i] !== v3);
+          do { sub1.push(poly[i]); i = (i + 1) % poly.length; } while (poly[i] !== v2 && poly[i] !== v3);
           sub1.push(poly[i]);
 
-          // Build sub2 from the other of v2/v3 back to v1
-          const other = (poly[i] === v2 ? v3 : v2);
-          i = poly.indexOf(other);
-          do {
-            sub2.push(poly[i]);
-            i = (i + 1) % poly.length;
-          } while (poly[i] !== v1);
+          if(poly[i] === v2){
+            i = poly.indexOf(v3);
+            j = poly.indexOf(v2);
+            k = i
+          }
+          else{
+            i = poly.indexOf(v2);
+            j = poly.indexOf(v3);
+            k = i
+          }
+          do { sub2.push(poly[i]); i = (i + 1) % poly.length; } while (poly[i] !== v1);
           sub2.push(v1);
 
-          // Build sub3 as the chain between v2 and v3 along the polygon
-          const idx2 = poly.indexOf(v2);
-          const idx3 = poly.indexOf(v3);
-          if (idx2 <= idx3) {
-            for (let k = idx2; k <= idx3; k++) sub3.push(poly[k]);
-          } else {
-            for (let k = idx2; k < poly.length; k++) sub3.push(poly[k]);
-            for (let k = 0; k <= idx3; k++) sub3.push(poly[k]);
-          }
           sub3.push(v1);
+          
+          do { sub3.push(poly[j]); j = (j + 1) % poly.length; } while (poly[j] !== k);
           //console.log('Split into sub-polygons indexes:', sub1, sub2, sub3, 'weights:', sub1.map(i=>weights[i]), sub2.map(i=>weights[i]), sub3.map(i=>weights[i]));
           result1 = simpleTri(sub1);
           
           result2 = simpleTri(sub2);
+          result3 = simpleTri(sub3);
           cost += result1.cost;
           cost += result2.cost;
+          cost += result3.cost;
           edges = edges.concat(result1.edges);
           //console.log('result1 edges:', result1.edges , 'for sub1:', sub1);
           edges = edges.concat(result2.edges);
           //console.log('result2 edges:', result2.edges , 'for sub2:', sub2);
+          edges = edges.concat(result3.edges);
         }
       } else {
         // Case: v2 and v3 are neighbors of v1 → two possible diagonals
