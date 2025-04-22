@@ -180,21 +180,35 @@
           edges = edges.concat(result2.edges);
           //console.log('result2 edges:', result2.edges , 'for sub2:', sub2);
         } else if(splitnum == 3){
+          // Three splits: two polygons and the segment between v2 and v3
           const sub1 = [], sub2 = [], sub3 = [];
+          // Build sub1 from v1 up to the first of v2/v3
           let i = idx1;
-          do { sub1.push(poly[i]); i = (i + 1) % poly.length; } while (poly[i] !== v2 && poly[i] !== v3);
+          do {
+            sub1.push(poly[i]);
+            i = (i + 1) % poly.length;
+          } while (poly[i] !== v2 && poly[i] !== v3);
           sub1.push(poly[i]);
 
-          if(poly[i] === v2){
-            i = poly.indexOf(v3);
-          }
-          else{
-            i = poly.indexOf(v2);
-          }
-          do { sub2.push(poly[i]); i = (i + 1) % poly.length; } while (poly[i] !== v1);
+          // Build sub2 from the other of v2/v3 back to v1
+          const other = (poly[i] === v2 ? v3 : v2);
+          i = poly.indexOf(other);
+          do {
+            sub2.push(poly[i]);
+            i = (i + 1) % poly.length;
+          } while (poly[i] !== v1);
           sub2.push(v1);
 
-          sub3.push(v1, v2, v3)
+          // Build sub3 as the chain between v2 and v3 along the polygon
+          const idx2 = poly.indexOf(v2);
+          const idx3 = poly.indexOf(v3);
+          if (idx2 <= idx3) {
+            for (let k = idx2; k <= idx3; k++) sub3.push(poly[k]);
+          } else {
+            for (let k = idx2; k < poly.length; k++) sub3.push(poly[k]);
+            for (let k = 0; k <= idx3; k++) sub3.push(poly[k]);
+          }
+          sub3.push(v1);
           //console.log('Split into sub-polygons indexes:', sub1, sub2, sub3, 'weights:', sub1.map(i=>weights[i]), sub2.map(i=>weights[i]), sub3.map(i=>weights[i]));
           result1 = simpleTri(sub1);
           
