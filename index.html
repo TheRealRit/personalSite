@@ -58,6 +58,11 @@
       logsElement.innerHTML = '';
       console.clear(); 
       currCost = 0;
+      M = {};
+      weights = [];
+      cwOrder = [];
+      idToVertex = {};
+      events = [];
       parseInput(); computePolygon(); events = []; currentStep = -1;
       console.log('Starting polygon:', cwOrder);
       let value = simpleTri([...cwOrder]);
