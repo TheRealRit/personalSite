@@ -16,15 +16,37 @@
 </head>
 <body>
   <div id="controls">
+    <h2>Polygon Triangulation</h2>
     <input id="weightsInput" size="30" placeholder="Enter weights, e.g. 3,1,4,2,5" />
     <button id="initBtn">Initialize</button>
     <button id="nextBtn" disabled>Next Step</button>
   </div>
-  <svg id="svgCanvas" width="600" height="600"></svg>
+  <div >
+    <div style="display: flex; vertical-align: top; text-align: left;">
+      <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <img src="static/theorem.png" alt="Triangulation example" width="350" height="120">
+        
+      </div>
+      <svg id="svgCanvas" width="600" height="600"></svg>
+      <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        
+        <img src="static/corollary.png" alt="Triangulation example" width="350" height="120">
+      </div>
+
+    </div>
+    
+    <div id="logs" style="overflow: scroll; height: 600px; text-align: left;">
+      <h3>Recursive Log</h3>
+      <div id="consoleOutput"></div>
+    </div>
+  </div>
 
   <script>
+
+    logsElement = document.getElementById('consoleOutput');
     // Core data
     let weights = [], cwOrder = [], idToVertex = {};
+    let M = {};
     let events = [], currentStep = -1;
     let currCost = 0;    // Accumulated triangle cost
 
@@ -33,6 +55,7 @@
     const nextBtn = document.getElementById('nextBtn');
 
     initBtn.onclick = () => {
+      logsElement.innerHTML = '';
       console.clear(); 
       currCost = 0;
       parseInput(); computePolygon(); events = []; currentStep = -1;
@@ -113,6 +136,7 @@
     // Simplified recursive triangulation:
     function simpleTri(poly) {
       //console.log('Recursing on poly indexes:', poly, 'weights:', poly.map(i=>weights[i]));
+      logsElement.innerHTML += `<div>Entering polygon of weights: ${poly.map(i=>weights[i])}</div>`;
       var cost = 0;
       var edges = [];
       if (poly.length < 4) {
@@ -124,6 +148,7 @@
           ////console.log(`Triangle formed weights=[${weights[a]},${weights[b]},${weights[c]}] cost=${triCost}, cumulative cost=${currCost}`);
         }
         //console.log('Quick Returning from', poly.map(i=>weights[i]), 'with cost:', cost, 'edges:', edges);
+        logsElement.innerHTML += `<div>Default case returning from polygon of weights: ${poly.map(i=>weights[i])} with cost: ${cost}</div>`;
         return { cost, edges };
       }
       const sorted = [...poly].sort((a,b) => weights[a] - weights[b]);
@@ -169,9 +194,23 @@
             i = (i + 1) % poly.length;
           }
           //console.log('Split into sub-polygons indexes:', sub1, sub2, 'weights:', sub1.map(i=>weights[i]), sub2.map(i=>weights[i]));
-          const result1 = simpleTri(sub1);
+          logsElement.innerHTML += `<div>Split into sub-polygons: ${sub1.map(i=>weights[i])} and ${sub2.map(i=>weights[i])}</div>`;
+          if(M[sub1]){
+            console.log('sub1 already computed:', M[sub1]);
+          } else {
+            M[sub1] = simpleTri(sub1);
+          }
+          //const result1 = simpleTri(sub1);
+          const result1 = M[sub1];
           //console.log('sanity check of [1,2,3]:', simpleTri([1,2,3]));
-          const result2 = simpleTri(sub2);
+          if(M[sub2]){
+            console.log('sub2 already computed:', M[sub2]);
+          } else {
+            M[sub2] = simpleTri(sub2);
+          }
+          const result2 = M[sub2];
+          //const result2 = simpleTri(sub2);
+
           cost += result1.cost + result2.cost;
           //console.log('edges before result1 concat:', edges);
           edges = edges.concat(result1.edges);
@@ -202,10 +241,30 @@
           
           do { sub3.push(poly[j]); j = (j + 1) % poly.length; } while (poly[j] !== k);
           //console.log('Split into sub-polygons indexes:', sub1, sub2, sub3, 'weights:', sub1.map(i=>weights[i]), sub2.map(i=>weights[i]), sub3.map(i=>weights[i]));
-          result1 = simpleTri(sub1);
+          logsElement.innerHTML += `<div>Split into sub-polygons: ${sub1.map(i=>weights[i])} and ${sub2.map(i=>weights[i])} and ${sub3.map(i=>weights[i])}</div>`;
+
+          if(M[sub1]){
+            console.log('sub1 already computed:', M[sub1]);
+          } else {
+            M[sub1] = simpleTri(sub1);
+          }
+          if(M[sub2]){
+            console.log('sub2 already computed:', M[sub2]);
+          } else {
+            M[sub2] = simpleTri(sub2);
+          }
+          if(M[sub3]){
+            console.log('sub3 already computed:', M[sub3]);
+          } else {
+            M[sub3] = simpleTri(sub3);
+          }
+          const result1 = M[sub1];
+          const result2 = M[sub2];
+          const result3 = M[sub3];
+          //result1 = simpleTri(sub1);
           
-          result2 = simpleTri(sub2);
-          result3 = simpleTri(sub3);
+          //result2 = simpleTri(sub2);
+          //result3 = simpleTri(sub3);
           cost += result1.cost;
           cost += result2.cost;
           cost += result3.cost;
@@ -235,8 +294,20 @@
         do { subA2.push(poly[iA]); iA = (iA + 1) % poly.length; } while (poly[iA] !== v1);
         subA2.push(v1);
         //console.log('Branch A sub-polygons weights:', subA1.map(x=>weights[x]), subA2.map(x=>weights[x]));
-        const resA1 = simpleTri(subA1);
-        const resA2 = simpleTri(subA2);
+        if(M[subA1]){
+          console.log('subA1 already computed:', M[subA1]);
+        } else {
+          M[subA1] = simpleTri(subA1);
+        }
+        if(M[subA2]){
+          console.log('subA2 already computed:', M[subA2]);
+        } else {
+          M[subA2] = simpleTri(subA2);
+        }
+        const resA1 = M[subA1];
+        const resA2 = M[subA2];
+        //const resA1 = simpleTri(subA1);
+        //const resA2 = simpleTri(subA2);
         costA += resA1.cost + resA2.cost;
         edgesA.push(...resA1.edges, ...resA2.edges);
 
@@ -254,23 +325,38 @@
         do { subB2.push(poly[iB]); iB = (iB + 1) % poly.length; } while (poly[iB] !== v2);
         subB2.push(v2);
         //console.log('Branch B sub-polygons weights:', subB1.map(x=>weights[x]), subB2.map(x=>weights[x]));
-        const resB1 = simpleTri(subB1);
-        const resB2 = simpleTri(subB2);
+        if(M[subB1]){
+          console.log('subB1 already computed:', M[subB1]);
+        } else {
+          M[subB1] = simpleTri(subB1);
+        }
+        if(M[subB2]){
+          console.log('subB2 already computed:', M[subB2]);
+        } else {
+          M[subB2] = simpleTri(subB2);
+        }
+        const resB1 = M[subB1];
+        const resB2 = M[subB2];
+        //const resB1 = simpleTri(subB1);
+        //const resB2 = simpleTri(subB2);
         costB += resB1.cost + resB2.cost;
         edgesB.push(...resB1.edges, ...resB2.edges);
 
         // Choose the cheaper branch
         if (costA < costB) {
-          console.log('Chose Branch A with cost', costA, 'where branch B has cost', costB);
+          console.log('Chose Branch (v1, v4) with cost', costA, 'where branch (v2,v3) has cost', costB);
+          logsElement.innerHTML += `<div>Chose Branch (v1, v4) with cost ${costA} where branch (v2,v3) has cost ${costB}</div>`;
           cost = costA;
           edges = edgesA;
         } else {
-          console.log('Chose Branch B with cost', costB, );
+          console.log('Chose Branch (v2,v3) with cost', costB, 'where branch (v1,v4) has cost', costA);
+          logsElement.innerHTML += `<div>Chose Branch (v2,v3) with cost ${costB} where branch (v1,v4) has cost ${costA}</div>`;
           cost = costB;
           edges = edgesB;
         }
       }
       //console.log('Returning from', poly.map(i=>weights[i]), 'with cost:', cost, 'edges:', edges);
+      logsElement.innerHTML += `<div>Returning from polygon with weights: ${poly.map(i=>weights[i])} with cost: ${cost}</div>`;
       return { cost, edges };
 
     }
