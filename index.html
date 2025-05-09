@@ -1,431 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
+<meta charset="UTF-8">
+<title>Rit</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="STATIC/styles.css">
+<style>
+</style>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Step-by-Step Polygon Triangulation</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; margin: 0; padding: 0; }
-    #controls { margin: 1em; }
-    #svgCanvas { border: 1px solid #ccc; }
-    .vertex { fill: #fff; stroke: #333; }
-    .edge { stroke: #999; stroke-width: 2; }
-    .highlighted { stroke: #e74c3c; stroke-width: 3; }
-    text { font-size: 12px; font-family: sans-serif; }
-  </style>
+
 </head>
 <body>
-  <div id="controls">
-    <h2>Polygon Triangulation</h2>
-    <input id="weightsInput" size="30" placeholder="Enter weights, e.g. 3,1,4,2,5" />
-    <button id="initBtn">Initialize</button>
-    <button id="nextBtn" disabled>Next Step</button>
-  </div>
-  <div >
-    <div style="display: flex; vertical-align: top; text-align: left;">
-      <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <img src="static/theorem.png" alt="Triangulation example" width="350" height="120">
-        
-      </div>
-      <svg id="svgCanvas" width="600" height="600"></svg>
-      <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        
-        <img src="static/corollary.png" alt="Triangulation example" width="350" height="120">
-      </div>
+    <div>
+        <!--Add header with following dives:
+            Website name,
+            Navbar
+        -->
+        <canvas id="myCanvas" width="800" height="600"></canvas>
+        <div class="header">
+            <div class="content">
+                <!--Main content segment with width control-->
+                <div class="subContent">
+                    <div class="subHeader">
+                        <!-- Name of website -->
+                        <div id="websiteName">
+                            <h1>
+                                Rit
+                            </h1>
+                        </div>
+                        <!-- Navbar -->
+                        <div class="navbar">
+                            <a href="index.html">Home</a>
+                            <a href="projects.html">Projects</a>
+                            <a href="resume.html">Resume</a>
+                            <a href="aboutme.html">About Me</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Class for background of subcontent-->
+        <div class="content">
+            <!--Main content segment with width control-->
+            <div class="subContent">
+                <div class="pageTitle">
+                    <h1>Welcome</h1>
+                </div>
+            </div>
+        </div>
+        <!--Simple background for footer-->
+        <div class="footer">
+            <!--Main content segment with width control-->
+            <div class="subContent">
+
+            </div>
+        </div>
 
     </div>
     
-    <div id="logs" style="overflow: scroll; height: 600px; text-align: left;">
-      <h3>Recursive Log</h3>
-      <div id="consoleOutput"></div>
-    </div>
-  </div>
 
-  <script>
 
-    logsElement = document.getElementById('consoleOutput');
-    // Core data
-    let weights = [], cwOrder = [], idToVertex = {};
-    let M = {};
-    let events = [], currentStep = -1;
-    let currCost = 0;    // Accumulated triangle cost
-
-    const svg = document.getElementById('svgCanvas');
-    const initBtn = document.getElementById('initBtn');
-    const nextBtn = document.getElementById('nextBtn');
-
-    initBtn.onclick = () => {
-      logsElement.innerHTML = '';
-      console.clear(); 
-      currCost = 0;
-      weights = [];
-      cwOrder = [];
-      idToVertex = {};
-      events = [];
-      parseInput(); computePolygon(); events = []; currentStep = -1;
-      console.log('Starting polygon:', cwOrder);
-      let value = simpleTri([...cwOrder]);
-      events = value.edges;
-      console.log('Final triangulation:', events, 'should be:', value.edges);
-      render(); nextBtn.disabled = false;
-    };
-
-    nextBtn.onclick = () => {
-      if (currentStep + 1 < events.length) {
-        currentStep++; render();
-      }
-    };
-
-    function parseInput() {
-      const parts = document.getElementById('weightsInput').value
-        .split(',').map(x=>+x.trim()).filter(x=>!isNaN(x));
-      weights = parts;
-    }
-
-    function computePolygon() {
-      console.log('Computing polygon with weights:', weights);
-      const n = weights.length;
-      const cx = 300, cy = 300, r = 250;
-      // Generate regular n-gon
-      const pts = [];
-      for (let i = 0; i < n; i++) {
-        pts.push({
-          i,
-          x: cx + r * Math.cos(2 * Math.PI * i / n),
-          y: cy + r * Math.sin(2 * Math.PI * i / n)
-        });
-      }
-      // Pick bottom two nodes by raw y-coordinate
-      const bottomTwo = [...pts].sort((a, b) => b.y - a.y).slice(0, 2);
-      let [b1, b2] = bottomTwo.map(p => p.i);
-      const p1 = pts.find(p => p.i === b1);
-      const p2 = pts.find(p => p.i === b2);
-      const bLeft = (p1.x < p2.x) ? b1 : b2;
-      const bRight = (bLeft === b1) ? b2 : b1;
-      // Map initial positions
-      idToVertex = {};
-      pts.forEach(p => idToVertex[p.i] = { x: p.x, y: p.y });
-      // Rotate so that (bLeft,bRight) is horizontal
-      const vL = idToVertex[bLeft], vR = idToVertex[bRight];
-      const theta = Math.atan2(vR.y - vL.y, vR.x - vL.x);
-      const cosR = Math.cos(-theta), sinR = Math.sin(-theta);
-      Object.keys(idToVertex).forEach(key => {
-        const v = idToVertex[key];
-        const dx = v.x - cx, dy = v.y - cy;
-        const rx = dx * cosR - dy * sinR;
-        const ry = dx * sinR + dy * cosR;
-        idToVertex[key] = { x: cx + rx, y: cy + ry };
-      });
-      // Build cwOrder by angle around center
-      cwOrder = pts.map(p => p.i);
-      console.log('prerotated id to vertex:', idToVertex)
-      cwOrder.sort((a, b) => {
-        const pa = idToVertex[a], pb = idToVertex[b];
-        return Math.atan2(pa.y - cy, pa.x - cx) - Math.atan2(pb.y - cy, pb.x - cx);
-      });
-      /*
-       // Ensure bLeft is first and bRight is last
-      const middle = cwOrder.filter(idx => idx !== bLeft && idx !== bRight);
-      cwOrder = [bLeft, ...middle, bRight];
-      */
-      
-      // Rotate global weights array so that weight at bLeft becomes first
-      if (bLeft > 0) {
-        weights = weights.slice(weights.length - bLeft).concat(weights.slice(0, (weights.length -bLeft)));
-      }
-      console.log('Shifted weights by', bLeft, '→', weights);
-      
-    }
-
-    // Simplified recursive triangulation:
-    function simpleTri(poly) {
-      //console.log('Recursing on poly indexes:', poly, 'weights:', poly.map(i=>weights[i]));
-      logsElement.innerHTML += `<div>Entering polygon of weights: ${poly.map(i=>weights[i])}</div>`;
-      var cost = 0;
-      var edges = [];
-      if (poly.length < 4) {
-        if (poly.length === 3) {
-          const [a,b,c] = poly;
-          const triCost = weights[a] * weights[b] * weights[c];
-          currCost += triCost;
-          cost += triCost;
-          ////console.log(`Triangle formed weights=[${weights[a]},${weights[b]},${weights[c]}] cost=${triCost}, cumulative cost=${currCost}`);
-        }
-        //console.log('Quick Returning from', poly.map(i=>weights[i]), 'with cost:', cost, 'edges:', edges);
-        logsElement.innerHTML += `<div>Default case returning from polygon of weights: ${poly.map(i=>weights[i])} with cost: ${cost}</div>`;
-        return { cost, edges };
-      }
-      const sorted = [...poly].sort((a,b) => weights[a] - weights[b]);
-      const [v1, v2, v3] = sorted;
-      //console.log(`v1 index=${v1}, weight=${weights[v1]}; v2 index=${v2}, weight=${weights[v2]}; v3 index=${v3}, weight=${weights[v3]}`);
-      const idx1 = poly.indexOf(v1);
-      const left = poly[(idx1 - 1 + poly.length) % poly.length];
-      const right = poly[(idx1 + 1) % poly.length];
-      //console.log(`Neighbors of v1: index=${left}, weight=${weights[left]} and index=${right}, weight=${weights[right]}`);
-      // Check if v2 and v3 are neighbors of v1
-      if (!((left === v2 && right === v3) || (left === v3 && right === v2))) {
-        // Handle the case where v2 and v3 are not both neighbors of v1
-        var splitnum = 1;
-        var nonNbr;
-        if(left !== v2 && right !== v2) {
-          nonNbr = v2;
-          splitnum++;
-          //console.log(`Adding edge between v1 index=${v1}, weight=${weights[v1]} and index=${nonNbr}, weight=${weights[nonNbr]}`);
-          edges.push({ edge: [v1, nonNbr] });
-          //console.log('pushed to edges:', edges);
-        }
-        if(left !== v3 && right !== v3) {
-          nonNbr = v3;
-          splitnum++;
-          //console.log(`Adding edge between v1 index=${v1}, weight=${weights[v1]} and index=${nonNbr}, weight=${weights[nonNbr]}`);
-          edges.push({ edge: [v1, nonNbr] });
-          //console.log('pushed to edges:', edges);
-        }
-        if (splitnum == 2) {
-          const sub1 = [], sub2 = [];
-          // build sub1 from v1 up to nonNbr inclusive
-          let i = idx1;
-          while (true) {
-            sub1.push(poly[i]);
-            if (poly[i] === nonNbr) break;
-            i = (i + 1) % poly.length;
-          }
-          // build sub2 from nonNbr up to v1 inclusive
-          i = poly.indexOf(nonNbr);
-          while (true) {
-            sub2.push(poly[i]);
-            if (poly[i] === v1) break;
-            i = (i + 1) % poly.length;
-          }
-          //console.log('Split into sub-polygons indexes:', sub1, sub2, 'weights:', sub1.map(i=>weights[i]), sub2.map(i=>weights[i]));
-          logsElement.innerHTML += `<div>Split into sub-polygons: ${sub1.map(i=>weights[i])} and ${sub2.map(i=>weights[i])}</div>`;
-          if(M[sub1]){
-            console.log('sub1 already computed:', M[sub1]);
-          } else {
-            M[sub1] = simpleTri(sub1);
-          }
-          //const result1 = simpleTri(sub1);
-          const result1 = M[sub1];
-          //console.log('sanity check of [1,2,3]:', simpleTri([1,2,3]));
-          if(M[sub2]){
-            console.log('sub2 already computed:', M[sub2]);
-          } else {
-            M[sub2] = simpleTri(sub2);
-          }
-          const result2 = M[sub2];
-          //const result2 = simpleTri(sub2);
-
-          cost += result1.cost + result2.cost;
-          //console.log('edges before result1 concat:', edges);
-          edges = edges.concat(result1.edges);
-          //console.log('result1 edges:', result1.edges , 'for sub1:', sub1);
-          //console.log('edges before result2 concat:', edges);
-          edges = edges.concat(result2.edges);
-          //console.log('result2 edges:', result2.edges , 'for sub2:', sub2);
-        } else if(splitnum == 3){
-          const sub1 = [], sub2 = [], sub3 = [];
-          let i = idx1;
-          do { sub1.push(poly[i]); i = (i + 1) % poly.length; } while (poly[i] !== v2 && poly[i] !== v3);
-          sub1.push(poly[i]);
-
-          if(poly[i] === v2){
-            i = poly.indexOf(v3);
-            j = poly.indexOf(v2);
-            k = i
-          }
-          else{
-            i = poly.indexOf(v2);
-            j = poly.indexOf(v3);
-            k = i
-          }
-          do { sub2.push(poly[i]); i = (i + 1) % poly.length; } while (poly[i] !== v1);
-          sub2.push(v1);
-
-          sub3.push(v1);
-          
-          do { sub3.push(poly[j]); j = (j + 1) % poly.length; } while (poly[j] !== k);
-          //console.log('Split into sub-polygons indexes:', sub1, sub2, sub3, 'weights:', sub1.map(i=>weights[i]), sub2.map(i=>weights[i]), sub3.map(i=>weights[i]));
-          logsElement.innerHTML += `<div>Split into sub-polygons: ${sub1.map(i=>weights[i])} and ${sub2.map(i=>weights[i])} and ${sub3.map(i=>weights[i])}</div>`;
-
-          if(M[sub1]){
-            console.log('sub1 already computed:', M[sub1]);
-          } else {
-            M[sub1] = simpleTri(sub1);
-          }
-          if(M[sub2]){
-            console.log('sub2 already computed:', M[sub2]);
-          } else {
-            M[sub2] = simpleTri(sub2);
-          }
-          if(M[sub3]){
-            console.log('sub3 already computed:', M[sub3]);
-          } else {
-            M[sub3] = simpleTri(sub3);
-          }
-          const result1 = M[sub1];
-          const result2 = M[sub2];
-          const result3 = M[sub3];
-          //result1 = simpleTri(sub1);
-          
-          //result2 = simpleTri(sub2);
-          //result3 = simpleTri(sub3);
-          cost += result1.cost;
-          cost += result2.cost;
-          cost += result3.cost;
-          edges = edges.concat(result1.edges);
-          //console.log('result1 edges:', result1.edges , 'for sub1:', sub1);
-          edges = edges.concat(result2.edges);
-          //console.log('result2 edges:', result2.edges , 'for sub2:', sub2);
-          edges = edges.concat(result3.edges);
-        }
-      } else {
-        // Case: v2 and v3 are neighbors of v1 → two possible diagonals
-        //console.log('v2 and v3 are neighbors; evaluating two branches');
-        const [v1, v2, v3, v4] = sorted;
-
-        // --- Branch A: diagonal (v1, v4) ---
-        //console.log('Branch A: add diagonal (v1,v4)');
-        let costA = 0;
-        let edgesA = [...edges];
-        edgesA.push({ edge: [v1, v4] });
-        // build subpolygons for Branch A
-        const subA1 = [];
-        let iA = poly.indexOf(v1);
-        do { subA1.push(poly[iA]); iA = (iA + 1) % poly.length; } while (poly[iA] !== v4);
-        subA1.push(v4);
-        const subA2 = [];
-        iA = poly.indexOf(v4);
-        do { subA2.push(poly[iA]); iA = (iA + 1) % poly.length; } while (poly[iA] !== v1);
-        subA2.push(v1);
-        //console.log('Branch A sub-polygons weights:', subA1.map(x=>weights[x]), subA2.map(x=>weights[x]));
-        if(M[subA1]){
-          console.log('subA1 already computed:', M[subA1]);
-        } else {
-          M[subA1] = simpleTri(subA1);
-        }
-        if(M[subA2]){
-          console.log('subA2 already computed:', M[subA2]);
-        } else {
-          M[subA2] = simpleTri(subA2);
-        }
-        const resA1 = M[subA1];
-        const resA2 = M[subA2];
-        //const resA1 = simpleTri(subA1);
-        //const resA2 = simpleTri(subA2);
-        costA += resA1.cost + resA2.cost;
-        edgesA.push(...resA1.edges, ...resA2.edges);
-
-        // --- Branch B: diagonal (v2, v3) ---
-        //console.log('Branch B: add diagonal (v2,v3)');
-        let costB = 0;
-        let edgesB = [...edges];
-        edgesB.push({ edge: [v2, v3] });
-        const subB1 = [];
-        let iB = poly.indexOf(v2);
-        do { subB1.push(poly[iB]); iB = (iB + 1) % poly.length; } while (poly[iB] !== v3);
-        subB1.push(v3);
-        const subB2 = [];
-        iB = poly.indexOf(v3);
-        do { subB2.push(poly[iB]); iB = (iB + 1) % poly.length; } while (poly[iB] !== v2);
-        subB2.push(v2);
-        //console.log('Branch B sub-polygons weights:', subB1.map(x=>weights[x]), subB2.map(x=>weights[x]));
-        if(M[subB1]){
-          console.log('subB1 already computed:', M[subB1]);
-        } else {
-          M[subB1] = simpleTri(subB1);
-        }
-        if(M[subB2]){
-          console.log('subB2 already computed:', M[subB2]);
-        } else {
-          M[subB2] = simpleTri(subB2);
-        }
-        const resB1 = M[subB1];
-        const resB2 = M[subB2];
-        //const resB1 = simpleTri(subB1);
-        //const resB2 = simpleTri(subB2);
-        costB += resB1.cost + resB2.cost;
-        edgesB.push(...resB1.edges, ...resB2.edges);
-
-        // Choose the cheaper branch
-        if (costA < costB) {
-          console.log('Chose Branch (v1, v4) with cost', costA, 'where branch (v2,v3) has cost', costB);
-          logsElement.innerHTML += `<div>Chose Branch (v1, v4) with cost ${costA} where branch (v2,v3) has cost ${costB}</div>`;
-          cost = costA;
-          edges = edgesA;
-        } else {
-          console.log('Chose Branch (v2,v3) with cost', costB, 'where branch (v1,v4) has cost', costA);
-          logsElement.innerHTML += `<div>Chose Branch (v2,v3) with cost ${costB} where branch (v1,v4) has cost ${costA}</div>`;
-          cost = costB;
-          edges = edgesB;
-        }
-      }
-      //console.log('Returning from', poly.map(i=>weights[i]), 'with cost:', cost, 'edges:', edges);
-      logsElement.innerHTML += `<div>Returning from polygon with weights: ${poly.map(i=>weights[i])} with cost: ${cost}</div>`;
-      return { cost, edges };
-
-    }
-
-    function render() {
-      while(svg.firstChild) svg.removeChild(svg.firstChild);
-      // draw boundary
-      for (let i=0;i<cwOrder.length;i++){
-        const u=cwOrder[i], v=cwOrder[(i+1)%cwOrder.length];
-        drawLine(idToVertex[u], idToVertex[v], 'edge');
-      }
-      // draw added edges
-      for (let i=0;i<=currentStep;i++) {
-        const [u,v] = events[i].edge;
-        drawLine(idToVertex[u], idToVertex[v], 'highlighted');
-      }
-      // draw vertices
-      cwOrder.forEach(idx=>drawCircle(idx));
-    }
-
-    function drawLine(a,b,cls){
-      const l=document.createElementNS(svg.namespaceURI,'line');
-      l.setAttribute('x1',a.x);l.setAttribute('y1',a.y);
-      l.setAttribute('x2',b.x);l.setAttribute('y2',b.y);
-      l.setAttribute('class',cls);svg.appendChild(l);
-    }
-    function drawCircle(idx){
-      const p=idToVertex[idx];
-      const c=document.createElementNS(svg.namespaceURI,'circle');
-      c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',5);
-      c.setAttribute('class','vertex');svg.appendChild(c);
-      const t=document.createElementNS(svg.namespaceURI,'text');
-      t.setAttribute('x',p.x+8);t.setAttribute('y',p.y+4);
-      t.textContent=weights[idx];svg.appendChild(t);
-    }
-    /*
-    // --- Deep backup of current state ---
-    function deepBackup() {
-      // Arrays of primitives can be shallow-copied
-      const weightsCopy   = [...weights];
-      const cwOrderCopy   = [...cwOrder];
-      // Objects or nested structures require deep cloning
-      const idToVertexCopy = JSON.parse(JSON.stringify(idToVertex));
-      const eventsCopy    = events.map(ev => ({ edge: [...ev.edge] }));
-      // Primitives are copied by value
-      const currentStepCopy = currentStep;
-      const currCostCopy    = currCost;
-      return { weightsCopy, cwOrderCopy, idToVertexCopy, eventsCopy, currentStepCopy, currCostCopy };
-    }
-      */
-  </script>
 </body>
+<script>
+    // Detect scroll event and change header background
+    window.addEventListener('scroll', function() {
+        const header = document.querySelector('.header');
+        
+        if (window.scrollY > 0) {
+            // Add 'scrolled' class when the page is scrolled
+            header.classList.add('scrolled');
+        } else {
+            // Remove 'scrolled' class when the page is at the top
+            header.classList.remove('scrolled');
+        }
+    });
+</script>
+<script src="STATIC/stars.js"></script>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
